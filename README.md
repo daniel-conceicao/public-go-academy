@@ -11,6 +11,13 @@ to run: /to_do_app/> go run main.go
         2024/08/22 13:42:17 Starting key-value store on http://localhost:9000
         2024/08/22 13:42:17 Starting webserver on http://localhost:11000
 
-The web app runs on localhost:11000 and the rest API on localhost:9000
+REST API
+ENDPOINT        METHOD                Description
+-------------------------------------------------------
+/getALL        GET                        - Get all tasks
+/get           GET                        - Get task
+/delete        DELETE                     - Delete task
+/set           POST                       - Create task
+               PUT                        - Update task
 
 
