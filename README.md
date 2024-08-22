@@ -16,7 +16,7 @@ REST API
 
 
 ENDPOINT      METHOD                     DESCRIPTION
--------------------------------------------------------
+
 /getALL        GET                        - Get all tasks
 /get           GET                        - Get task
 /delete        DELETE                     - Delete task
