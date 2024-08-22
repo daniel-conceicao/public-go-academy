@@ -14,11 +14,10 @@ to run: /to_do_app/> go run main.go
 
 REST API 
 
-
 ENDPOINT      METHOD                     DESCRIPTION
 
-/getALL        GET                        - Get all tasks
-/get           GET                        - Get task
-/delete        DELETE                     - Delete task
-/set           POST                       - Create task
-               PUT                        - Update task
+/getALL        GET                        Get all tasks
+/get           GET                        Get task
+/delete        DELETE                     Delete task
+/set           POST                       Create task
+               PUT                        Update task
