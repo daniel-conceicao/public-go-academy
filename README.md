@@ -1,1 +1,2 @@
-# public-go-academy
+# go-academy
+Assignments for the Go Academy

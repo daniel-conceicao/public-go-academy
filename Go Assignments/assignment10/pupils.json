@@ -1,0 +1,54 @@
+{
+    "pupils": [
+      {
+        "fullName": "Pupil01",
+        "dateOfBirth": "2001-01-01T01:01:01Z",
+        "age": 21
+      },
+      {
+        "fullName": "Pupil02",
+        "dateOfBirth": "2002-02-02T02:02:02Z",
+        "age": 22
+      },
+      {
+        "fullName": "Pupil03",
+        "dateOfBirth": "2003-03-03T03:03:03Z",
+        "age": 23
+      },
+      {
+        "fullName": "Pupil04",
+        "dateOfBirth": "2004-04-04T04:04:04Z",
+        "age": 24
+      },
+      {
+        "fullName": "Pupil05",
+        "dateOfBirth": "2005-05-05T05:05:05Z",
+        "age": 25
+      },
+      {
+        "fullName": "Pupil06",
+        "dateOfBirth": "2006-06-06T06:06:06Z",
+        "age": 26
+      },
+      {
+        "fullName": "Pupil07",
+        "dateOfBirth": "2007-07-07T07:07:07Z",
+        "age": 27
+      },
+      {
+        "fullName": "Pupil08",
+        "dateOfBirth": "2008-08-08T08:08:08Z",
+        "age": 28
+      },
+      {
+        "fullName": "Pupil09",
+        "dateOfBirth": "2009-09-09T09:09:09Z",
+        "age": 29
+      },
+      {
+        "fullName": "Pupil10",
+        "dateOfBirth": "2010-10-10T10:10:10Z",
+        "age": 30
+      }
+    ]
+  }
