@@ -55,10 +55,6 @@ func Run() {
 	}
 }
 
-func getListOfTasks() {
-
-}
-
 func HandleGetList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("GET LIST ", r.Method)
