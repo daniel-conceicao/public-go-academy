@@ -81,11 +81,7 @@
             xhr.onreadystatechange = function () {
                 if (xhr.readyState == XMLHttpRequest.DONE) {
                     if (this.status === 200) {
-                        if (action === "update") {
-                            location.assign('http://localhost:11000/editTask?taskId=' + taskId);
-                        } else {
-                            location.assign('http://localhost:11000/');
-                        }
+                        location.assign('http://localhost:11000/');
                     } else {
                         document.getElementsByTagName("body")[0].innerHTML = this.responseText
                     }

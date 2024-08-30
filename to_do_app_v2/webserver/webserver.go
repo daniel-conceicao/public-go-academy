@@ -55,42 +55,89 @@ func Run() {
 	}
 }
 
+func getListOfTasks() {
+
+}
+
 func HandleGetList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("GET LIST ", r.Method)
 		var tasks map[string]keyValueStore.Task
 
+		if r.Method != http.MethodGet {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(http.StatusMethodNotAllowed),
+				Error:     errors.New(http.StatusText(http.StatusMethodNotAllowed)),
+			}
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			errorPage.Execute(w, data)
+			return
+		}
+
 		resp, err := http.Get("http://localhost:9000/getAll")
 		if err != nil {
-			log.Printf("Error: %s\n", err)
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-		} else {
-			if resp.Body != nil {
-				bodyBytes, err := io.ReadAll(resp.Body)
-				if err != nil {
-					log.Printf("Body reading error: %v", err)
-					return
-				}
-				defer resp.Body.Close()
-				if len(bodyBytes) > 0 {
-					var prettyJSON bytes.Buffer
-					if err = json.Indent(&prettyJSON, bodyBytes, "", "\t"); err != nil {
-						log.Printf("JSON parse error: %v", err)
-						return
-					}
-					log.Println("REST API", string(prettyJSON.String()))
-				} else {
-					log.Printf("Body: No Body Supplied\n")
-				}
-
-				err = json.Unmarshal(bodyBytes, &tasks)
-				if err != nil {
-					log.Printf("Error: %s\n", err)
-					http.Error(w, "Invalid request body", http.StatusBadRequest)
-				}
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
 			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
 		}
-		log.Println(tasks)
+		if resp.StatusCode != http.StatusOK {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(resp.StatusCode),
+				Error:     errors.New(http.StatusText(resp.StatusCode)),
+			}
+			w.WriteHeader(resp.StatusCode)
+			errorPage.Execute(w, data)
+			return
+		}
+
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		defer resp.Body.Close()
+		if len(bodyBytes) == 0 {
+			data := ErrorPageData{
+				ErrorCode: "001",
+				Error:     errors.New("empty response body"),
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+
+		var prettyJSON bytes.Buffer
+		if err = json.Indent(&prettyJSON, bodyBytes, "", "\t"); err != nil {
+			data := ErrorPageData{
+				ErrorCode: "001",
+				Error:     errors.New("json indent error"),
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		log.Println("GET LIST REST API", string(prettyJSON.String()))
+
+		err = json.Unmarshal(bodyBytes, &tasks)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		log.Printf("GET LIST: %v", tasks)
 		data := TodoAppHomepageData{
 			Tasks: tasks,
 		}
@@ -101,126 +148,186 @@ func HandleGetList() http.HandlerFunc {
 func HandleEditTask() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("EDIT TASK", r.Method)
+
+		if r.Method != http.MethodGet {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(http.StatusMethodNotAllowed),
+				Error:     errors.New(http.StatusText(http.StatusMethodNotAllowed)),
+			}
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			errorPage.Execute(w, data)
+			return
+		}
+
 		taskId := r.URL.Query().Get("taskId")
 		if taskId == "" {
 			data := ErrorPageData{
 				ErrorCode: "999",
 				Error:     errors.New("invalid task id"),
 			}
+			w.WriteHeader(http.StatusBadRequest)
 			errorPage.Execute(w, data)
-		} else {
-			var task keyValueStore.Task
-			resp, err := http.Get(fmt.Sprintf("http://localhost:9000/get?id=%s", taskId))
-			if err != nil {
-				data := ErrorPageData{
-					ErrorCode: "001",
-					Error:     errors.New("error getting task"),
-				}
-				errorPage.Execute(w, data)
-			} else {
-				if resp.StatusCode != http.StatusOK {
-					if resp.StatusCode != http.StatusOK {
-						data := ErrorPageData{
-							ErrorCode: strconv.Itoa(resp.StatusCode),
-							Error:     errors.New(http.StatusText(resp.StatusCode)),
-						}
-						errorPage.Execute(w, data)
-					}
-				} else {
-					if resp.Body != nil {
-						bodyBytes, err := io.ReadAll(resp.Body)
-						if err != nil {
-							log.Printf("Body reading error: %v", err)
-							return
-						}
-						defer resp.Body.Close()
-						if len(bodyBytes) > 0 {
-							var prettyJSON bytes.Buffer
-							if err = json.Indent(&prettyJSON, bodyBytes, "", "\t"); err != nil {
-								log.Printf("JSON parse error: %v", err)
-								return
-							}
-							log.Println("REST API", string(prettyJSON.String()))
-						} else {
-							log.Printf("Body: No Body Supplied\n")
-						}
-
-						err = json.Unmarshal(bodyBytes, &task)
-						if err != nil {
-							log.Printf("Error: %s\n", err)
-							http.Error(w, "Invalid request body", http.StatusBadRequest)
-						}
-					}
-					log.Println("TASK_EDIT:", task)
-					data := TaskPageData{
-						PageTitle: "Edit task",
-						Task:      task,
-						Action:    "update",
-					}
-					taskPage.Execute(w, data)
-				}
-			}
+			return
 		}
+
+		var task keyValueStore.Task
+		resp, err := http.Get(fmt.Sprintf("http://localhost:9000/get?id=%s", taskId))
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "001",
+				Error:     errors.New("error getting task"),
+			}
+			errorPage.Execute(w, data)
+			return
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(resp.StatusCode),
+				Error:     errors.New(http.StatusText(resp.StatusCode)),
+			}
+			w.WriteHeader(resp.StatusCode)
+			errorPage.Execute(w, data)
+			return
+		}
+
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		defer resp.Body.Close()
+		if len(bodyBytes) == 0 {
+			data := ErrorPageData{
+				ErrorCode: "001",
+				Error:     errors.New("empty response body"),
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+
+		var prettyJSON bytes.Buffer
+		if err = json.Indent(&prettyJSON, bodyBytes, "", "\t"); err != nil {
+			data := ErrorPageData{
+				ErrorCode: "001",
+				Error:     errors.New("json indent error"),
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		log.Println("EDIT REST API", string(prettyJSON.String()))
+
+		err = json.Unmarshal(bodyBytes, &task)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		log.Println("TASK_EDIT:", task)
+		data := TaskPageData{
+			PageTitle: "Edit task",
+			Task:      task,
+			Action:    "update",
+		}
+		taskPage.Execute(w, data)
 	}
 }
 
 func HandleUpdateTask() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("UPDATE ", r.Method)
-		if r.Method == "PUT" {
-			decoder := json.NewDecoder(r.Body)
-			var task keyValueStore.Task
-			err := decoder.Decode(&task)
-			if err != nil {
-				panic(err)
-			}
-			log.Println(task)
-			// create a new HTTP client
-			client := &http.Client{}
-			jsonReq, err := json.Marshal(task)
-			if err != nil {
-				log.Printf("Error: %s\n", err)
-				http.Error(w, "Error creating the request", http.StatusBadRequest)
-			} else {
-				// create a new POST request
-				req, err := http.NewRequest(http.MethodPut, "http://localhost:9000/set", bytes.NewBuffer(jsonReq))
-				req.Header.Set("Content-Type", "application/json; charset=utf-8")
-				if err != nil {
-					log.Printf("Error: %s\n", err)
-					http.Error(w, "Error creating the request", http.StatusBadRequest)
-				} else {
-					// send the request
-					resp, err := client.Do(req)
-					if err != nil {
-						data := ErrorPageData{
-							ErrorCode: "001",
-							Error:     err,
-						}
-						errorPage.Execute(w, data)
-					} else {
-						if resp.StatusCode != http.StatusOK {
-							data := ErrorPageData{
-								ErrorCode: strconv.Itoa(resp.StatusCode),
-								Error:     errors.New(http.StatusText(resp.StatusCode)),
-							}
-							errorPage.Execute(w, data)
-						}
-					}
-				}
-			}
-		} else {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+		log.Println("UPDATE", r.Method)
+		if r.Method != http.MethodPut {
 			data := ErrorPageData{
-				ErrorCode: "001",
-				Error:     errors.New("request type not allowed"),
+				ErrorCode: strconv.Itoa(http.StatusMethodNotAllowed),
+				Error:     errors.New(http.StatusText(http.StatusMethodNotAllowed)),
 			}
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			errorPage.Execute(w, data)
+			return
+		}
+		decoder := json.NewDecoder(r.Body)
+		var task keyValueStore.Task
+		err := decoder.Decode(&task)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		log.Printf("UPDATE TASK: %v", task)
+		// create a new HTTP client
+		client := &http.Client{}
+		jsonReq, err := json.Marshal(task)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		// create a new POST request
+		req, err := http.NewRequest(http.MethodPut, "http://localhost:9000/set", bytes.NewBuffer(jsonReq))
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+		// send the request
+		resp, err := client.Do(req)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		if resp.StatusCode != http.StatusOK {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(resp.StatusCode),
+				Error:     errors.New(http.StatusText(resp.StatusCode)),
+			}
+			w.WriteHeader(resp.StatusCode)
+			errorPage.Execute(w, data)
+			return
 		}
 	}
 }
 
 func HandleAddTask() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(http.StatusMethodNotAllowed),
+				Error:     errors.New(http.StatusText(http.StatusMethodNotAllowed)),
+			}
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			errorPage.Execute(w, data)
+			return
+		}
+
 		task := keyValueStore.Task{Id: "", Title: "", Description: "", Status: "false"}
 
 		log.Println("TASK_ADD:", task)
@@ -236,63 +343,77 @@ func HandleAddTask() http.HandlerFunc {
 func HandleCreateTask() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("CREATE ", r.Method)
-		if r.Method == "POST" {
-			decoder := json.NewDecoder(r.Body)
-			var task keyValueStore.Task
-			err := decoder.Decode(&task)
-			if err != nil {
-				panic(err)
+		if r.Method != http.MethodPost {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(http.StatusMethodNotAllowed),
+				Error:     errors.New(http.StatusText(http.StatusMethodNotAllowed)),
 			}
-			if task.Title == "" {
-				data := ErrorPageData{
-					ErrorCode: "001",
-					Error:     errors.New("title field is mandatory"),
-				}
-				errorPage.Execute(w, data)
-			} else {
-				// create a new HTTP client
-				client := &http.Client{}
-				jsonReq, err := json.Marshal(task)
-				if err != nil {
-					log.Printf("Error: %s\n", err)
-					http.Error(w, "Error creating the request", http.StatusBadRequest)
-				} else {
-					// create a new POST request
-					req, err := http.NewRequest(http.MethodPost, "http://localhost:9000/set", bytes.NewBuffer(jsonReq))
-					req.Header.Set("Content-Type", "application/json; charset=utf-8")
-					if err != nil {
-						log.Printf("Error: %s\n", err)
-						http.Error(w, "Error creating the request", http.StatusBadRequest)
-					} else {
-						// send the request
-						resp, err := client.Do(req)
-						if err != nil {
-							data := ErrorPageData{
-								ErrorCode: "001",
-								Error:     err,
-							}
-							errorPage.Execute(w, data)
-						} else {
-							if resp.StatusCode != http.StatusOK {
-								data := ErrorPageData{
-									ErrorCode: strconv.Itoa(resp.StatusCode),
-									Error:     errors.New(http.StatusText(resp.StatusCode)),
-								}
-								errorPage.Execute(w, data)
-							} else {
-								http.Redirect(w, r, "/getList", http.StatusSeeOther)
-							}
-						}
-					}
-
-				}
-			}
-		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
+			errorPage.Execute(w, data)
+			return
+		}
+		decoder := json.NewDecoder(r.Body)
+		var task keyValueStore.Task
+		err := decoder.Decode(&task)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		if task.Title == "" {
 			data := ErrorPageData{
 				ErrorCode: "001",
-				Error:     errors.New("request type not allowed"),
+				Error:     errors.New("title field is mandatory"),
 			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		// create a new HTTP client
+		client := &http.Client{}
+		jsonReq, err := json.Marshal(task)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		// create a new POST request
+		req, err := http.NewRequest(http.MethodPost, "http://localhost:9000/set", bytes.NewBuffer(jsonReq))
+
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+		// send the request
+		resp, err := client.Do(req)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: "001",
+				Error:     err,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+		}
+		if resp.StatusCode != http.StatusOK {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(resp.StatusCode),
+				Error:     errors.New(http.StatusText(resp.StatusCode)),
+			}
+			w.WriteHeader(resp.StatusCode)
 			errorPage.Execute(w, data)
 		}
 	}
@@ -300,53 +421,56 @@ func HandleCreateTask() http.HandlerFunc {
 
 func HandleDeleteTask() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "DELETE" {
-			taskId := r.URL.Query().Get("taskId")
-			if taskId == "" {
-				data := ErrorPageData{
-					ErrorCode: "999",
-					Error:     errors.New("invalid task id"),
-				}
-				errorPage.Execute(w, data)
-			} else {
-				client := &http.Client{}
-				req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://localhost:9000/delete?id=%s", taskId), nil)
-				if err != nil {
-					log.Printf("Error: %s\n", err)
-					http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-					data := ErrorPageData{
-						ErrorCode: strconv.Itoa(http.StatusBadRequest),
-						Error:     errors.New(http.StatusText(http.StatusBadRequest)),
-					}
-					errorPage.Execute(w, data)
-				} else {
-					// send the request
-					resp, err := client.Do(req)
-					if err != nil {
-						data := ErrorPageData{
-							ErrorCode: "001",
-							Error:     err,
-						}
-						errorPage.Execute(w, data)
-					} else {
-						if resp.StatusCode != http.StatusOK {
-							data := ErrorPageData{
-								ErrorCode: strconv.Itoa(resp.StatusCode),
-								Error:     errors.New(http.StatusText(resp.StatusCode)),
-							}
-							errorPage.Execute(w, data)
-						} else {
-							http.Redirect(w, r, "/getList", http.StatusSeeOther)
-						}
-					}
-				}
+		log.Println("DELETE ", r.Method)
+		if r.Method != http.MethodDelete {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(http.StatusMethodNotAllowed),
+				Error:     errors.New(http.StatusText(http.StatusMethodNotAllowed)),
 			}
-		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			errorPage.Execute(w, data)
+			return
+		}
+		taskId := r.URL.Query().Get("taskId")
+		if taskId == "" {
+			data := ErrorPageData{
+				ErrorCode: "999",
+				Error:     errors.New("invalid task id"),
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		client := &http.Client{}
+		req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://localhost:9000/delete?id=%s", taskId), nil)
+		if err != nil {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(http.StatusBadRequest),
+				Error:     errors.New(http.StatusText(http.StatusBadRequest)),
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
+		}
+		// send the request
+		resp, err := client.Do(req)
+		if err != nil {
 			data := ErrorPageData{
 				ErrorCode: "001",
-				Error:     errors.New("request type not allowed"),
+				Error:     err,
 			}
+			w.WriteHeader(http.StatusBadRequest)
 			errorPage.Execute(w, data)
+			return
+		}
+		if resp.StatusCode != http.StatusOK {
+			data := ErrorPageData{
+				ErrorCode: strconv.Itoa(resp.StatusCode),
+				Error:     errors.New(http.StatusText(resp.StatusCode)),
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			errorPage.Execute(w, data)
+			return
 		}
 	}
 }

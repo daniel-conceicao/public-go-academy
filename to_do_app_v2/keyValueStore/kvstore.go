@@ -14,8 +14,8 @@ func HandleSet(kv *KeyValueStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost && r.Method != http.MethodPut {
 			w.WriteHeader(http.StatusMethodNotAllowed)
+			fmt.Println("TESTE")
 		} else {
-			log.Println("HandleSet")
 			log.Printf("BEFORE SET LIST %v", kv.data)
 			var task Task
 
@@ -38,7 +38,7 @@ func HandleSet(kv *KeyValueStore) http.HandlerFunc {
 				}
 				log.Println("SET", string(prettyJSON.String()))
 			} else {
-				log.Printf("Body: No Body Supplied\n")
+				w.WriteHeader(http.StatusBadRequest)
 			}
 
 			err := json.Unmarshal(bodyBytes, &task)
@@ -66,7 +66,6 @@ func HandleGet(kv *KeyValueStore) http.HandlerFunc {
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		} else {
-			log.Println("HandleGet")
 			log.Printf("GET LIST %v", kv.data)
 			w.Header().Set("Content-Type", "application/json")
 			id := r.URL.Query().Get("id")
@@ -93,7 +92,6 @@ func HandleGetAll(kv *KeyValueStore) http.HandlerFunc {
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		} else {
-			log.Println("HandleGetAll")
 			log.Printf("GETALL LIST %v", kv.data)
 
 			jsonList, err := json.Marshal(kv.data)
@@ -114,7 +112,6 @@ func HandleDelete(kv *KeyValueStore) http.HandlerFunc {
 		if r.Method != http.MethodDelete {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		} else {
-			log.Println("HandleDelete")
 			log.Printf("BEFORE DELETE %v", kv.data)
 			id := r.URL.Query().Get("id")
 			log.Printf("BEFORE DELETE ID: %s", id)
