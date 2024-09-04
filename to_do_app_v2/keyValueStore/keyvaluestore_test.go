@@ -38,7 +38,7 @@ func TestSetTableDriven(t *testing.T) {
 			var key string
 
 			if tt.key == emptyKey {
-				for key, _ = range keyValueStore.data {
+				for key = range keyValueStore.data {
 					if key == "" {
 						t.Errorf("got %q want %q", key, "<GUUID>")
 					}

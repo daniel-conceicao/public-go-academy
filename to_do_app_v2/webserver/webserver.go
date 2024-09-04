@@ -277,7 +277,7 @@ func HandleUpdateTask() http.HandlerFunc {
 			errorPage.Execute(w, data)
 			return
 		}
-		// create a new POST request
+
 		req, err := http.NewRequest(http.MethodPut, "http://localhost:9000/set", bytes.NewBuffer(jsonReq))
 		if err != nil {
 			data := ErrorPageData{
