@@ -122,7 +122,7 @@ func TestGetTableDriven(t *testing.T) {
 	}
 }
 
-func TestDEleteTableDriven(t *testing.T) {
+func TestDeleteTableDriven(t *testing.T) {
 	testKey := "testKey"
 	emptyKey := ""
 	testTitle := "testTitle"
